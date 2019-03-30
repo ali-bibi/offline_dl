@@ -1,5 +1,6 @@
 import * as bodyParser from 'body-parser';
 import * as express from 'express';
+import * as isPortAvailable from 'is-port-available';
 import * as fetch from 'isomorphic-fetch';
 import * as moment from 'moment';
 import * as uuidv4 from 'uuid/v4';
@@ -190,17 +191,19 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
 
 // conversationInitRequired -> By default require that a conversation is initialized before it is accessed, returning a 400
 // when not the case. If set to false, a new conversation reference is created on the fly
-export const initializeRoutes = (app: express.Express, port: number = 3000, botUrl: string, conversationInitRequired = true) => {
+export const initializeRoutes = async (app: express.Express, port: number = 3000, botUrl: string, conversationInitRequired = true) => {
     conversationsCleanup();
 
     const directLineEndpoint = `http://127.0.0.1:${port}`;
     const router = getRouter(directLineEndpoint, botUrl, conversationInitRequired);
 
     app.use(router);
-    app.listen(port, () => {
-        console.log(`Listening for messages from client on ${directLineEndpoint}`);
-        console.log(`Routing messages to bot on ${botUrl}`);
-    });
+    if(await isPortAvailable(port)) {
+        app.listen(port, () => {
+            console.log(`Listening for messages from client on ${directLineEndpoint}`);
+            console.log(`Routing messages to bot on ${botUrl}`);
+        });
+    }
 };
 
 const getConversation = (conversationId: string, conversationInitRequired: boolean) => {
